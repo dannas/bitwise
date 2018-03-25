@@ -15,6 +15,84 @@
 #include "ast.c"
 
 /*
+  Problems I encountered:
+  Didn't parenthesize ((b) = arr__grow((b), (n), sizeof(*b))) which caused an
+  error about non-existing lvalue for arr_push(). So lesson learned: the
+  ternary operator is right associative and an assignment expression returns
+  the type.
+
+  I returned new_hdr instead of new_hdr->buf from arr__grow.
+  I didn't assign values to the ptr->len and ptr->cap at the right place
+
+  QtCreators watch expression pane choked on (ArrHdr*)((uintptr_t)vals - offsetof(ArrHdr, buf))
+  Turns out you can't use macros for gdb expressions.
+
+  QtCreator choked on *(ArrHdr*)((uintptr_t)vals - 16)
+  Turns out you can't dereference a cast (not sure if that is the correct
+  conclusion, but the expression was not valid)
+
+  This watch expression worked (ArrHdr*)((uintptr_t)vals - 16). But it printed
+  the struct members in opposite declaration order.
+
+  In arr__grow, I initialized new_hdr->len to len instead of the correct 0. I
+  should have. The len is supposed to be incremented in arr_push.
+
+  I called realloc with ptr as argument instead of arr__hdr(ptr).
+  Lucky for me, realloc asserted immediately.
+*/
+
+// Stretchy buffer. My reimplementation from scratch.
+// Tried using statements instead but it didn't make the code clearer.
+typedef struct ArrHdr {
+    size_t len;
+    size_t cap;
+    char buf[];
+} ArrHdr;
+
+#define arr__hdr(b) ((ArrHdr*)((uintptr_t)b - offsetof(ArrHdr, buf)))
+#define arr__fits(b, n) (arr_len(b) + (n) < arr_cap(b))
+#define arr__fit(b, n) (arr__fits(b, n) ? 0 : ((b) = arr__grow((b), (n), sizeof(*b))))
+
+#define arr_len(b) ((!b) ? 0 : arr__hdr((b))->len)
+#define arr_cap(b) ((!b) ? 0 : arr__hdr((b))->cap)
+#define arr_push(b, val) (arr__fit(b, 1), (b)[arr__hdr(b)->len++] = (val))
+#define arr_free(b) ((!b) ? 0 : free(arr__hdr(b)), (b) = NULL)
+
+void* arr__grow(void *ptr, size_t len, size_t num_bytes) {
+    size_t new_cap = arr_cap(ptr) * 2 + 1;
+    ArrHdr *new_hdr = NULL;
+    if (ptr) {
+        new_hdr = xrealloc(arr__hdr(ptr), len * num_bytes);
+    } else {
+        new_hdr = xmalloc(len * num_bytes);
+        new_hdr->len = 0;
+    }
+    new_hdr->cap = new_cap;
+    return new_hdr->buf;
+}
+
+void arr_test() {
+    // Start of empty.
+    int *vals = NULL;
+    assert(arr_len(vals) == 0);
+    assert(arr_cap(vals) == 0);
+
+    // Add first elt. Triggers malloc.
+    arr_push(vals, 1);
+    assert(arr_len(vals) == 1);
+    assert(arr_cap(vals) == 1);
+
+    // Add second elt. Triggers realloc.
+    arr_push(vals, 2);
+    assert(arr_len(vals) == 2);
+    assert(arr_cap(vals) == 3);
+
+    // Freeing should reset the pointer.
+    arr_free(vals);
+    assert(vals == NULL);
+}
+
+/*
  Here's the operators we're supposed to be able to parse:
 
         unary -, unary ~    (right associative)
@@ -146,84 +224,6 @@ void print_test() {
     TEST_PRINT("1*-2*(1+3+4)");
 }
 
-/*
-
-  Problems I encountered:
-  Didn't parenthesize ((b) = arr__grow((b), (n), sizeof(*b))) which caused an
-  error about non-existing lvalue for arr_push(). So lesson learned: the
-  ternary operator is right associative and an assignment expression returns
-  the type.
-
-  I returned new_hdr instead of new_hdr->buf from arr__grow.
-  I didn't assign values to the ptr->len and ptr->cap at the right place
-
-  QtCreators watch expression pane choked on (ArrHdr*)((uintptr_t)vals - offsetof(ArrHdr, buf))
-  Turns out you can't use macros for gdb expressions.
-
-  QtCreator choked on *(ArrHdr*)((uintptr_t)vals - 16)
-  Turns out you can't dereference a cast (not sure if that is the correct
-  conclusion, but the expression was not valid)
-
-  This watch expression worked (ArrHdr*)((uintptr_t)vals - 16). But it printed
-  the struct members in opposite declaration order.
-
-  In arr__grow, I initialized new_hdr->len to len instead of the correct 0. I
-  should have. The len is supposed to be incremented in arr_push.
-
-  I called realloc with ptr as argument instead of arr__hdr(ptr).
-  Lucky for me, realloc asserted immediately.
-*/
-
-// Stretchy buffer. My reimplementation from scratch.
-// Tried using statements instead but it didn't make the code clearer.
-typedef struct ArrHdr {
-    size_t len;
-    size_t cap;
-    char buf[];
-} ArrHdr;
-
-#define arr__hdr(b) ((ArrHdr*)((uintptr_t)b - offsetof(ArrHdr, buf)))
-#define arr__fits(b, n) (arr_len(b) + (n) < arr_cap(b))
-#define arr__fit(b, n) (arr__fits(b, n) ? 0 : ((b) = arr__grow((b), (n), sizeof(*b))))
-
-#define arr_len(b) ((!b) ? 0 : arr__hdr((b))->len)
-#define arr_cap(b) ((!b) ? 0 : arr__hdr((b))->cap)
-#define arr_push(b, val) (arr__fit(b, 1), (b)[arr__hdr(b)->len++] = (val))
-#define arr_free(b) ((!b) ? 0 : free(arr__hdr(b)), (b) = NULL)
-
-void* arr__grow(void *ptr, size_t len, size_t num_bytes) {
-    size_t new_cap = arr_cap(ptr) * 2 + 1;
-    ArrHdr *new_hdr = NULL;
-    if (ptr) {
-        new_hdr = xrealloc(arr__hdr(ptr), len * num_bytes);
-    } else {
-        new_hdr = xmalloc(len * num_bytes);
-        new_hdr->len = 0;
-    }
-    new_hdr->cap = new_cap;
-    return new_hdr->buf;
-}
-
-void arr_test() {
-    // Start of empty.
-    int *vals = NULL;
-    assert(arr_len(vals) == 0);
-    assert(arr_cap(vals) == 0);
-
-    // Add first elt. Triggers malloc.
-    arr_push(vals, 1);
-    assert(arr_len(vals) == 1);
-    assert(arr_cap(vals) == 1);
-
-    // Add second elt. Triggers realloc.
-    arr_push(vals, 2);
-    assert(arr_len(vals) == 2);
-    assert(arr_cap(vals) == 3);
-
-    // Freeing should reset the pointer.
-    arr_free(vals);
-    assert(vals == NULL);
-}
 
 int main() {
     buf_test();
