@@ -148,44 +148,39 @@ static inline bool expect_token(TokenKind kind) {
     }
 }
 
-void lex_test() {
-    char *source = "XY+(XY)_HELLO1,234+FOO!994";
-    stream = source;
-    next_token();
-    while (token.kind) {
-        next_token();
-    }
+#define assert_token(x) (assert(match_token(x)))
+#define assert_token_eof() (assert(match_token('\0')))
+#define assert_token_int(x) assert(token.val == (x) && match_token(TOKEN_INT))
 
+void lex_test() {
     init_stream("");
-    assert(match_token('\0'));
-    assert(match_token('\0'));
+    assert_token_eof();
 
     init_stream("1");
-    assert(match_token(TOKEN_INT) && token.val == 1);
-    assert(match_token('\0'));
+    assert_token_int(1);
 
     init_stream("1+2");
-    assert(match_token(TOKEN_INT) && token.val == 1);
-    assert(match_token('+'));
-    assert(match_token(TOKEN_INT) && token.val == 2);
+    assert_token_int(1);
+    assert_token('+');
+    assert_token_int(2);
 
     init_stream("1<2");
-    assert(match_token(TOKEN_INT) && token.val == 1);
-    assert(match_token('<'));
-    assert(match_token(TOKEN_INT) && token.val == 2);
+    assert_token_int(1);
+    assert_token('<');
+    assert_token_int(2);
 
     init_stream("1<<2");
-    assert(match_token(TOKEN_INT) && token.val == 1);
-    assert(match_token(TOKEN_LSHIFT));
-    assert(match_token(TOKEN_INT) && token.val == 2);
+    assert_token_int(1);
+    assert_token(TOKEN_LSHIFT);
+    assert_token_int(2);
 
     init_stream("1>2");
-    assert(match_token(TOKEN_INT) && token.val == 1);
-    assert(match_token('>'));
-    assert(match_token(TOKEN_INT) && token.val == 2);
+    assert_token_int(1);
+    assert_token('>');
+    assert_token_int(2);
 
     init_stream("1>>2");
-    assert(match_token(TOKEN_INT) && token.val == 1);
-    assert(match_token(TOKEN_RSHIFT));
-    assert(match_token(TOKEN_INT) && token.val == 2);
+    assert_token_int(1);
+    assert_token(TOKEN_RSHIFT);
+    assert_token_int(2);
 }
