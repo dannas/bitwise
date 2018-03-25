@@ -69,7 +69,7 @@ void buf_test() {
     }
     assert(buf_len(buf) == N);
     for (size_t i = 0; i < buf_len(buf); i++) {
-        assert(buf[i] == i);
+        assert(buf[i] == (int)i);
     }
     buf_free(buf);
     assert(buf == NULL);
