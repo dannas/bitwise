@@ -3,6 +3,8 @@ typedef enum TokenKind {
     TOKEN_LAST_CHAR = 127,
     TOKEN_INT,
     TOKEN_NAME,
+    TOKEN_LSHIFT,
+    TOKEN_RSHIFT
     // ...
 } TokenKind;
 
@@ -15,6 +17,12 @@ const char *token_kind_name(TokenKind kind) {
         break;
     case TOKEN_NAME:
         sprintf(buf, "name");
+        break;
+    case TOKEN_LSHIFT:
+        sprintf(buf, "<<");
+        break;
+    case TOKEN_RSHIFT:
+        sprintf(buf, ">>");
         break;
     default:
         if (kind < 128 && isprint(kind)) {
@@ -72,6 +80,20 @@ void next_token() {
         }
         token.kind = TOKEN_NAME;
         token.name = str_intern_range(token.start, stream);
+        break;
+    case '<':
+        token.kind = *stream++;
+        if (*stream == '<')  {
+            token.kind = TOKEN_LSHIFT;
+            stream++;
+        }
+        break;
+    case '>':
+        token.kind = *stream++;
+        if (*stream == '>') {
+            token.kind = TOKEN_RSHIFT;
+            stream++;
+        }
         break;
     default:
         token.kind = *stream++;
@@ -133,4 +155,37 @@ void lex_test() {
     while (token.kind) {
         next_token();
     }
+
+    init_stream("");
+    assert(match_token('\0'));
+    assert(match_token('\0'));
+
+    init_stream("1");
+    assert(match_token(TOKEN_INT) && token.val == 1);
+    assert(match_token('\0'));
+
+    init_stream("1+2");
+    assert(match_token(TOKEN_INT) && token.val == 1);
+    assert(match_token('+'));
+    assert(match_token(TOKEN_INT) && token.val == 2);
+
+    init_stream("1<2");
+    assert(match_token(TOKEN_INT) && token.val == 1);
+    assert(match_token('<'));
+    assert(match_token(TOKEN_INT) && token.val == 2);
+
+    init_stream("1<<2");
+    assert(match_token(TOKEN_INT) && token.val == 1);
+    assert(match_token(TOKEN_LSHIFT));
+    assert(match_token(TOKEN_INT) && token.val == 2);
+
+    init_stream("1>2");
+    assert(match_token(TOKEN_INT) && token.val == 1);
+    assert(match_token('>'));
+    assert(match_token(TOKEN_INT) && token.val == 2);
+
+    init_stream("1>>2");
+    assert(match_token(TOKEN_INT) && token.val == 1);
+    assert(match_token(TOKEN_RSHIFT));
+    assert(match_token(TOKEN_INT) && token.val == 2);
 }

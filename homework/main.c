@@ -183,11 +183,11 @@ char* print_expr() {
 char* print_term() {
     char* t = print_factor();
     // TODO(dannas): Add two-byte
-    while (is_token('*') || is_token('/') || is_token('%')) {
-        char op = token.kind;
+    while (is_token('*') || is_token('/') || is_token('%') || is_token(TOKEN_LSHIFT) || is_token(TOKEN_RSHIFT)) {
+        TokenKind kind = token.kind;
         next_token();
         char* t1 = print_factor();
-        t = make_string("(%c %s %s)", op, t, t1);
+        t = make_string("(%s %s %s)", token_kind_name(kind), t, t1);
     }
     return t;
 }
@@ -222,6 +222,7 @@ void print_test() {
     TEST_PRINT("2*3-4*5*6+7");
     TEST_PRINT("2*3-4/5*6+7");
     TEST_PRINT("1*-2*(1+3+4)");
+    TEST_PRINT("1<<2");
 }
 
 
