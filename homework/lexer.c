@@ -107,20 +107,6 @@ void init_stream(const char *str) {
     next_token();
 }
 
-void print_token(Token token) {
-    switch (token.kind) {
-    case TOKEN_INT:
-        printf("TOKEN INT: %d\n", token.val);
-        break;
-    case TOKEN_NAME:
-        printf("TOKEN NAME: %.*s\n", (int)(token.end - token.start), token.start);
-        break;
-    default:
-        printf("TOKEN '%c'\n", token.kind);
-        break;
-    }
-}
-
 static inline bool is_token(TokenKind kind) {
     return token.kind == kind;
 }
