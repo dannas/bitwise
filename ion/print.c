@@ -18,7 +18,7 @@ void flush_print_buf(FILE *file) {
     }
 }
 
-void print_newline() {
+void print_newline(void) {
     printf("\n%.*s", 2*indent, "                                                                      ");
 }
 
@@ -168,9 +168,9 @@ void print_stmt(Stmt *stmt) {
         break;
     case STMT_RETURN:
         printf("(return");
-        if (s->return_stmt.expr) {
+        if (s->expr) {
             printf(" ");
-            print_expr(s->return_stmt.expr);
+            print_expr(s->expr);
         }
         printf(")");
         break;
@@ -370,7 +370,7 @@ void print_decl(Decl *decl) {
 }
 
 
-void print_test() {
+void print_test(void) {
     use_print_buf = true;
     // Expressions
     Expr *exprs[] = {

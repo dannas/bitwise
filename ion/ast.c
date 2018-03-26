@@ -228,15 +228,15 @@ Stmt *stmt_decl(Decl *decl) {
 
 Stmt *stmt_return(Expr *expr) {
     Stmt *s = stmt_new(STMT_RETURN);
-    s->return_stmt.expr = expr;
+    s->expr = expr;
     return s;
 }
 
-Stmt *stmt_break() {
+Stmt *stmt_break(void) {
     return stmt_new(STMT_BREAK);
 }
 
-Stmt *stmt_continue() {
+Stmt *stmt_continue(void) {
     return stmt_new(STMT_CONTINUE);
 }
 
